@@ -7,11 +7,69 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<!-- шапка з навігацією та пошуком -->
-<!-- блок фільтра за типом напою -->
-<!-- список карток рецептів -->
-<!--блок деталей обраного рецепта (інгредієнти, кроки)-->
-<!--підвал-->
+    <header>
+        <h1>Каталог рецептів напоїв</h1>
+        <nav>
+            <a href="#hot-drinks">Гарячі напої</a>
+            <a href="#cold-drinks">Холодні напої</a>
+            <a href="#non-alcoholic">Безалкогольні</a>
+            <a href="#alcoholic">Алкогольні</a>
+        </nav>
+    </header>
+
+    <main>
+        <section id="filter">
+            <h2>Фільтр</h2>
+            <form>
+                <label for="drink-type">Тип напою:</label>
+                <select id="drink-type" name="type">
+                    <option value="all">Всі</option>
+                    <option value="hot">Гарячі</option>
+                    <option value="cold">Холодні</option>
+                    <option value="non-alcoholic">Безалкогольні</option>
+                    <option value="alcoholic">Алкогольні</option>
+                </select>
+            </form>
+        </section>
+
+        <section id="recipes">
+            <h2>Рецепти</h2>
+
+            <article>
+                <h3>Кава Латте</h3>
+                <img src="assets/img/latte.jpg" alt="Склянка гарячого латте">
+                <p>Класичний кавовий напій з великою кількістю молока. (Гарячий, Безалкогольний)</p>
+            </article>
+
+            <article>
+                <h3>Мохіто (Алкогольний)</h3>
+                <img src="assets/img/mojito.jpg" alt="Холодний коктейль мохіто з м'ятою та лаймом">
+                <p>Освіжаючий напій на основі білого рому, м'яти та лайма. (Холодний, Алкогольний)</p>
+            </article>
+
+            <article>
+                <h3>Домашній Лимонад</h3>
+                <img src="assets/img/lemonade.jpg" alt="Глек свіжого лимонаду з льодом та м'ятою">
+                <p>Прохолодний літній напій зі свіжих лимонів та сиропу. (Холодний, Безалкогольний)</p>
+            </article>
+
+            <article>
+                <h3>Глінтвейн</h3>
+                <img src="assets/img/mulled-wine.jpg" alt="Келих гарячого глінтвейну зі спеціями">
+                <p>Зігріваючий напій на основі червоного вина зі спеціями та цитрусовими. (Гарячий, Алкогольний)</p>
+            </article>
+
+        </section>
+    </main>
+
+    <aside>
+        <h2>Деталі рецепта</h2>
+        <p>Оберіть рецепт, щоб побачити інгредієнти та кроки приготування.</p>
+    </aside>
+
+    <footer>
+        <p>&copy; 2026 Навчальний проєкт. Виконала: Приходченко Олександра ІП-о51</p>
+    </footer>
 <script src="js/app.js"></script>
 </body>
 </html>
