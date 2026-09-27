@@ -10,33 +10,57 @@ body {
     background-color: #fdfdfd;
 }
 
-header {
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+.site-header {
     background-color: #008b8b;
     color: white;
-    padding: 24px;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 15px;
+}
+
+.site-header h1 {
+    font-size: 2.2rem;
+    margin: 0;
     text-align: center;
 }
 
-header h1 {
-    font-size: 2.2rem;
-    margin: 0 0 10px 0;
+.site-nav {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 20px;
 }
 
-nav a {
+.site-nav a {
     color: white;
     text-decoration: none;
-    margin-right: 20px;
     font-weight: bold;
 }
 
-nav a:last-child {
-    margin-right: 0;
+.site-nav a:hover {
+    text-decoration: underline;
 }
 
-main {
+.layout {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+main {
+    min-width: 0;
 }
 
 section {
@@ -44,24 +68,26 @@ section {
 }
 
 #filter form {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
     padding: 20px;
     border: 1px solid #ccc;
     border-radius: 8px;
 }
 
-#recipes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-}
-
 #recipes h2 {
-    width: 100%;
     margin-bottom: 20px;
 }
 
+.cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
 .recipe-card {
-    width: calc(50% - 10px);
     border: 1px solid #eee;
     border-radius: 10px;
     overflow: hidden;
@@ -90,8 +116,7 @@ section {
 }
 
 aside {
-    max-width: 1200px;
-    margin: 40px auto;
+    margin: 40px 0;
     padding: 20px;
     background-color: #fff3e0;
     border: 1px solid #ffcc80;
@@ -100,6 +125,56 @@ aside {
 
 aside ol {
     padding-left: 30px;
+}
+
+@media (min-width: 600px) {
+    .site-nav {
+        flex-direction: row;
+        justify-content: center;
+    }
+
+    #filter form {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .site-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24px 40px;
+        gap: 30px;
+    }
+
+    .site-header h1 {
+        text-align: left;
+    }
+
+    .layout {
+        max-width: 1280px;
+        padding: 0 40px;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        align-items: start;
+        gap: 40px;
+    }
+
+    .cards {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    aside {
+        margin: 40px 0;
+        position: sticky;
+        top: 20px;
+    }
 }
 
 footer {
