@@ -1,13 +1,19 @@
+/* Нечітка вимога: «має викликати апетит».
+   Обґрунтування: Використано теплу палітру. Бордовий (#900C3F) та насичений помаранчевий (#D35400) 
+   асоціюються зі спеціями, вином, кавою та цитрусовими, що підсвідомо стимулює апетит 
+   та створює відчуття затишку. Фон замінено на теплий кремовий відтінок (#FFFBF5).
+*/
+
 *, *::before, *::after {
     box-sizing: border-box;
 }
 
 body {
     margin: 0;
-    font-family: system-ui, sans-serif;
-    line-height: 1.5;
-    color: #222;
-    background-color: #fdfdfd;
+    font-family: system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    color: #2C1E16;
+    background-color: #FFFBF5;
 }
 
 img {
@@ -15,8 +21,13 @@ img {
     height: auto;
 }
 
+h1, h2, h3 {
+    font-family: 'Georgia', serif;
+    color: #900C3F;
+}
+
 .site-header {
-    background-color: #008b8b;
+    background-color: #D35400;
     color: white;
     padding: 24px 20px;
     display: flex;
@@ -24,12 +35,14 @@ img {
     flex-wrap: wrap;
     align-items: center;
     gap: 15px;
+    border-bottom: 4px solid #900C3F;
 }
 
 .site-header h1 {
     font-size: 2.2rem;
     margin: 0;
     text-align: center;
+    color: white;
 }
 
 .site-nav {
@@ -41,12 +54,14 @@ img {
 }
 
 .site-nav a {
-    color: white;
+    color: #FFE6D5;
     text-decoration: none;
     font-weight: bold;
+    transition: color 0.3s;
 }
 
 .site-nav a:hover {
+    color: white;
     text-decoration: underline;
 }
 
@@ -73,58 +88,124 @@ section {
     align-items: stretch;
     gap: 10px;
     padding: 20px;
-    border: 1px solid #ccc;
+    background-color: white;
+    border: 1px solid #F0E6D2;
     border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 #recipes h2 {
     margin-bottom: 20px;
+    border-bottom: 2px solid #D35400;
+    padding-bottom: 5px;
+    display: inline-block;
 }
 
 .cards {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 24px;
 }
 
 .recipe-card {
-    border: 1px solid #eee;
-    border-radius: 10px;
+    background-color: white;
+    border: 1px solid #F0E6D2;
+    border-radius: 12px;
     overflow: hidden;
-    transition: box-shadow 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
 }
 
 .recipe-card:hover {
-    box-shadow: 0 8px 16px rgba(255, 140, 0, 0.3);
+    transform: translateY(-5px);
+    box-shadow: 0 12px 20px rgba(144, 12, 63, 0.15);
 }
 
 .recipe-card img {
     width: 100%;
-    height: 250px;
+    height: 220px;
     object-fit: cover;
     display: block;
 }
 
+.card-content {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-weight: bold;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-hot {
+    background-color: #D35400;
+}
+.badge-cold {
+    background-color: #2980B9;
+}
+.badge-alc {
+    background-color: #8E44AD;
+}
+.badge-non-alc {
+    background-color: #27AE60;
+}
+
 .recipe-card h3 {
-    margin: 15px 15px 10px 15px;
-    color: #ff8c00;
+    font-size: 1.25rem;
+    margin: 0 0 10px 0;
+}
+
+.recipe-meta {
+    display: flex;
+    gap: 15px;
+    font-size: 0.85rem;
+    color: #7F8C8D;
+    margin-bottom: 12px;
+    font-weight: 500;
 }
 
 .recipe-card p {
-    padding: 0 15px 15px 15px;
     margin: 0;
+    font-size: 0.95rem;
+    color: #4A3E3D;
 }
 
 aside {
     margin: 40px 0;
-    padding: 20px;
-    background-color: #fff3e0;
-    border: 1px solid #ffcc80;
-    border-radius: 8px;
+    padding: 24px;
+    background-color: #FFF3E0;
+    border-left: 4px solid #D35400;
+    border-radius: 0 8px 8px 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+aside h2 {
+    margin-top: 0;
 }
 
 aside ol {
-    padding-left: 30px;
+    padding-left: 20px;
+    margin-bottom: 0;
+}
+
+aside li {
+    margin-bottom: 8px;
 }
 
 @media (min-width: 600px) {
@@ -161,13 +242,13 @@ aside ol {
     .layout {
         max-width: 1280px;
         padding: 0 40px;
-        grid-template-columns: minmax(0, 1fr) 300px;
+        grid-template-columns: minmax(0, 1fr) 320px;
         align-items: start;
         gap: 40px;
     }
 
     .cards {
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     }
 
     aside {
@@ -178,9 +259,10 @@ aside ol {
 }
 
 footer {
-    background-color: #333;
-    color: #ccc;
+    background-color: #2C1E16;
+    color: #EAECEE;
     text-align: center;
-    padding: 20px;
+    padding: 24px 20px;
     font-size: 0.9rem;
+    margin-top: 40px;
 }
