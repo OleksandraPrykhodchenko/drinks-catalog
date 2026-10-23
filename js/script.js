@@ -33,13 +33,21 @@ function createEl(tag, text, ...classes) {
 function renderDrinks(recipes) {
     listContainer.innerHTML = '';
 
+    // Якщо за фільтром нічого не знайдено — показуємо повідомлення
+    if (recipes.length === 0) {
+        listContainer.append(createEl('p', 'Рецептів за обраним фільтром немає.', 'empty-message'));
+    }
+
     recipes.forEach(recipe => {
         const card = createEl('article', '', 'recipe-card');
         card.dataset.time = recipe.timeMinutes;
 
-        const img = document.createElement('img');
-        img.src = recipe.img;
-        img.setAttribute('alt', recipe.imgAlt);
+        // Нові рецепти з форми не мають зображення — тоді img не створюємо
+        const img = recipe.img ? document.createElement('img') : null;
+        if (img) {
+            img.src = recipe.img;
+            img.setAttribute('alt', recipe.imgAlt);
+        }
 
         const content = createEl('div', '', 'card-content');
 
@@ -69,7 +77,8 @@ function renderDrinks(recipes) {
         const description = createEl('p', recipe.description);
 
         content.append(badges, title, meta, type, description);
-        card.append(img, content);
+        if (img) card.append(img);
+        card.append(content);
 
         // Умовний клас: безалкогольний напій
         if (!recipe.alcohol) {
@@ -79,9 +88,81 @@ function renderDrinks(recipes) {
         listContainer.append(card);
     });
 
-    // Оновлення підсумку: кількість безалкогольних рецептів
-    const nonAlcoholicCount = recipes.filter(recipe => !recipe.alcohol).length;
-    drinksCount.textContent = `Безалкогольних рецептів: ${nonAlcoholicCount}`;
+    // Оновлення підсумку: кількість безалкогольних рецептів (серед усіх даних, а не лише показаних)
+    const nonAlcoholicCount = drinksRecipes.filter(recipe => !recipe.alcohol).length;
+    drinksCount.textContent = `Безалкогольних рецептів: ${nonAlcoholicCount}. Показано: ${recipes.length} з ${drinksRecipes.length}`;
 }
 
-renderDrinks(drinksRecipes);
+// Крок 2: вибір форми та її полів
+const form = document.querySelector('#add-recipe-form');
+const nameInput = document.querySelector('#recipe-name');
+const typeSelect = document.querySelector('#recipe-type');
+const timeInput = document.querySelector('#recipe-time');
+const alcoholCheckbox = document.querySelector('#recipe-alcohol');
+const onlyNonAlcCheckbox = document.querySelector('#only-non-alcoholic');
+
+// Перемальовує список з урахуванням чекбокса-фільтра «лише безалкогольні»
+function renderFiltered() {
+    const list = onlyNonAlcCheckbox.checked
+        ? drinksRecipes.filter(recipe => !recipe.alcohol)
+        : drinksRecipes;
+    renderDrinks(list);
+}
+
+// Складність нового рецепта визначаємо за часом приготування (у формі такого поля немає)
+const getDifficulty = time => (time <= 10 ? 'Легко' : time <= 20 ? 'Середньо' : 'Складно');
+
+// Крок 8: додаткова валідація на подію input — час приготування має бути більшим за нуль
+timeInput.addEventListener('input', () => {
+    if (timeInput.value !== '' && Number(timeInput.value) <= 0) {
+        timeInput.setCustomValidity('Час приготування має бути більшим за нуль');
+    } else {
+        timeInput.setCustomValidity(''); // повернути стандартний коректний стан
+    }
+});
+
+// Назва з самих пробілів проходить required, тому перевіряємо її окремо
+nameInput.addEventListener('input', () => {
+    if (nameInput.value !== '' && nameInput.value.trim() === '') {
+        nameInput.setCustomValidity('Назва не може складатися лише з пробілів');
+    } else {
+        nameInput.setCustomValidity('');
+    }
+});
+
+// Кроки 3-7: обробка надсилання форми без перезавантаження сторінки
+form.addEventListener('submit', event => {
+    event.preventDefault(); // без цього сторінка перезавантажиться
+
+    // Крок 4: зчитування значень полів
+    const name = nameInput.value.trim();
+    const type = typeSelect.value;
+    const timeMinutes = Number(timeInput.value);
+    const alcohol = alcoholCheckbox.checked;
+
+    // Крок 5: новий об'єкт тієї самої форми, що й елементи масиву, і додавання через push
+    drinksRecipes.push({
+        name,
+        type,
+        alcohol,
+        timeMinutes,
+        difficulty: getDifficulty(timeMinutes),
+        description: 'Рецепт додано користувачем.'
+    });
+
+    // Крок 6: повторний виклик рендеру з оновленим масивом
+    renderFiltered();
+
+    // Крок 7: очищення форми
+    form.reset();
+    console.log(`Додано рецепт: ${name}. Усього рецептів: ${drinksRecipes.length}`);
+});
+
+// Крок 9: друга подія варіанта — change на чекбоксі «лише безалкогольні»
+onlyNonAlcCheckbox.addEventListener('change', renderFiltered);
+
+// Форма фільтра не має надсилатися (Enter у select не повинен перезавантажувати сторінку)
+document.querySelector('#filter form').addEventListener('submit', event => event.preventDefault());
+
+// Початкове відображення списку
+renderFiltered();

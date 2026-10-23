@@ -31,6 +31,40 @@
                         <option value="non-alcoholic">Безалкогольні</option>
                         <option value="alcoholic">Алкогольні</option>
                     </select>
+                    <label class="checkbox-label" for="only-non-alcoholic">
+                        <input type="checkbox" id="only-non-alcoholic" name="onlyNonAlcoholic">
+                        Лише безалкогольні
+                    </label>
+                </form>
+            </section>
+
+            <section id="add-recipe">
+                <h2>Додати рецепт</h2>
+                <form id="add-recipe-form">
+                    <div class="form-row">
+                        <label for="recipe-name">Назва напою:</label>
+                        <input type="text" id="recipe-name" name="name" required placeholder="Наприклад, Капучино">
+                    </div>
+
+                    <div class="form-row">
+                        <label for="recipe-type">Тип напою:</label>
+                        <select id="recipe-type" name="type">
+                            <option value="Гарячий">Гарячий</option>
+                            <option value="Холодний">Холодний</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <label for="recipe-time">Час приготування (хв):</label>
+                        <input type="number" id="recipe-time" name="timeMinutes" required min="1" step="1" placeholder="10">
+                    </div>
+
+                    <div class="form-row form-row-check">
+                        <input type="checkbox" id="recipe-alcohol" name="alcohol">
+                        <label for="recipe-alcohol">Алкогольний напій</label>
+                    </div>
+
+                    <button type="submit" class="btn">Додати рецепт</button>
                 </form>
             </section>
 
