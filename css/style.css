@@ -289,6 +289,82 @@ section {
     border-radius: 8px;
 }
 
+/* Практична №9: клієнт для TheCocktailDB */
+[hidden] {
+    display: none !important;
+}
+
+#api-search-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background-color: white;
+    border: 1px solid #E5E7E9;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+#api-search-form label {
+    font-weight: 600;
+}
+
+#api-search-form input[type="text"] {
+    flex: 1 1 200px;
+    padding: 10px 12px;
+    font: inherit;
+    border: 1px solid #B2BABB;
+    border-radius: 6px;
+}
+
+#api-search-form input:focus-visible {
+    outline: 3px solid #1A5276;
+    outline-offset: 2px;
+}
+
+.btn:disabled {
+    background-color: #7B7D7D; /* контраст з білим ~4.1:1, кнопка неактивна */
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background-color: #1A5276; /* контраст з білим ~6.5:1 */
+}
+
+.btn-secondary:hover {
+    background-color: #154360;
+}
+
+.api-status {
+    margin: 0 0 16px 0;
+    padding: 12px 16px;
+    font-weight: 600;
+    color: #1A5276;
+    background-color: #EAF2F8;
+    border-radius: 8px;
+}
+
+.api-error {
+    margin: 0 0 16px 0;
+    padding: 12px 16px;
+    font-weight: 600;
+    color: #922B21; /* контраст на #FDEDEC ~6.9:1 */
+    background-color: #FDEDEC;
+    border: 1px solid #B03A2E;
+    border-radius: 8px;
+}
+
+/* Інструкції з API можуть бути довгими — обмежуємо картку п'ятьма рядками */
+#api-list .recipe-card p {
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 aside {
     margin: 40px 0;
     padding: 24px;

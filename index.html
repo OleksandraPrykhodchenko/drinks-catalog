@@ -139,6 +139,22 @@
                     </article>
                 </div>
             </section>
+
+            <section id="api-recipes">
+                <h2>Рецепти з TheCocktailDB</h2>
+
+                <form id="api-search-form">
+                    <label for="api-query">Назва напою (англійською):</label>
+                    <input type="text" id="api-query" name="query" value="margarita" required>
+                    <button type="submit" class="btn" id="api-search-btn">Знайти</button>
+                    <button type="button" class="btn btn-secondary" id="api-refresh-btn">Оновити</button>
+                </form>
+
+                <p id="api-status" class="api-status" role="status" aria-live="polite" hidden></p>
+                <p id="api-error" class="api-error" role="alert" hidden></p>
+
+                <div class="cards" id="api-list"></div>
+            </section>
         </main>
 
         <aside>
