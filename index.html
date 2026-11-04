@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Каталог рецептів напоїв</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- Vue 3 (глобальна збірка через CDN, без збірки й Node.js) -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js" defer></script>
     <script src="js/script.js" defer></script>
 </head>
 <body>
@@ -20,125 +22,83 @@
 
     <div class="layout">
         <main>
-            <section id="filter">
-                <h2>Фільтр</h2>
-                <form>
-                    <label for="drink-type">Тип напою:</label>
-                    <select id="drink-type" name="type">
-                        <option value="all">Всі</option>
-                        <option value="hot">Гарячі</option>
-                        <option value="cold">Холодні</option>
-                        <option value="non-alcoholic">Безалкогольні</option>
-                        <option value="alcoholic">Алкогольні</option>
-                    </select>
-                    <label class="checkbox-label" for="only-non-alcoholic">
-                        <input type="checkbox" id="only-non-alcoholic" name="onlyNonAlcoholic">
-                        Лише безалкогольні
-                    </label>
-                </form>
-            </section>
-
-            <section id="add-recipe">
-                <h2>Додати рецепт</h2>
-                <form id="add-recipe-form">
-                    <div class="form-row">
-                        <label for="recipe-name">Назва напою:</label>
-                        <input type="text" id="recipe-name" name="name" required placeholder="Наприклад, Капучино">
-                    </div>
-
-                    <div class="form-row">
-                        <label for="recipe-type">Тип напою:</label>
-                        <select id="recipe-type" name="type">
-                            <option value="Гарячий">Гарячий</option>
-                            <option value="Холодний">Холодний</option>
+            <!-- Практична №10: ділянку нижче відтворює Vue 3 (div#app). Статичні картки та ручний DOM-код замінено компонентом DrinkCard. -->
+            <div id="app" v-cloak>
+                <section id="filter">
+                    <h2>Фільтр</h2>
+                    <form @submit.prevent>
+                        <label for="drink-type">Тип напою:</label>
+                        <select id="drink-type" name="type">
+                            <option value="all">Всі</option>
+                            <option value="hot">Гарячі</option>
+                            <option value="cold">Холодні</option>
+                            <option value="non-alcoholic">Безалкогольні</option>
+                            <option value="alcoholic">Алкогольні</option>
                         </select>
+                        <!-- Чекбокс у батьківському компоненті: його значення передається вниз через props -->
+                        <label class="checkbox-label" for="only-non-alcoholic">
+                            <input type="checkbox" id="only-non-alcoholic" name="onlyNonAlcoholic" v-model="onlyNonAlcoholic">
+                            Лише безалкогольні
+                        </label>
+                    </form>
+                </section>
+
+                <section id="add-recipe">
+                    <h2>Додати рецепт</h2>
+                    <form id="add-recipe-form" @submit.prevent="addRecipe">
+                        <div class="form-row">
+                            <label for="recipe-name">Назва напою:</label>
+                            <input type="text" id="recipe-name" name="name" required placeholder="Наприклад, Капучино" v-model="newName">
+                            <p class="form-error" v-if="nameError">{{ nameError }}</p>
+                        </div>
+
+                        <div class="form-row">
+                            <label for="recipe-type">Тип напою:</label>
+                            <select id="recipe-type" name="type" v-model="newType">
+                                <option value="Гарячий">Гарячий</option>
+                                <option value="Холодний">Холодний</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <label for="recipe-time">Час приготування (хв):</label>
+                            <input type="number" id="recipe-time" name="timeMinutes" required min="1" step="1" placeholder="10" v-model.number="newTime">
+                        </div>
+
+                        <div class="form-row form-row-check">
+                            <input type="checkbox" id="recipe-alcohol" name="alcohol" v-model="newAlcohol">
+                            <label for="recipe-alcohol">Алкогольний напій</label>
+                        </div>
+
+                        <button type="submit" class="btn">Додати рецепт</button>
+                    </form>
+                </section>
+
+                <section id="recipes">
+                    <h2>Рецепти</h2>
+
+                    <p id="drinks-count" class="drinks-count">
+                        Безалкогольних рецептів: {{ nonAlcoholicCount }}. Показано: {{ visibleRecipes.length }} з {{ recipes.length }}
+                    </p>
+
+                    <div class="cards" id="drinks-list">
+                        <p class="empty-message" v-if="visibleRecipes.length === 0">Рецептів за обраним фільтром немає.</p>
+                        <!-- v-for з :key за унікальним id; дані та фільтр-значення передаються через props -->
+                        <drink-card
+                            v-for="recipe in visibleRecipes"
+                            :key="recipe.id"
+                            :name="recipe.name"
+                            :type="recipe.type"
+                            :time-minutes="recipe.timeMinutes"
+                            :alcohol="recipe.alcohol"
+                            :difficulty="recipe.difficulty"
+                            :description="recipe.description"
+                            :img="recipe.img"
+                            :img-alt="recipe.imgAlt"
+                        ></drink-card>
                     </div>
-
-                    <div class="form-row">
-                        <label for="recipe-time">Час приготування (хв):</label>
-                        <input type="number" id="recipe-time" name="timeMinutes" required min="1" step="1" placeholder="10">
-                    </div>
-
-                    <div class="form-row form-row-check">
-                        <input type="checkbox" id="recipe-alcohol" name="alcohol">
-                        <label for="recipe-alcohol">Алкогольний напій</label>
-                    </div>
-
-                    <button type="submit" class="btn">Додати рецепт</button>
-                </form>
-            </section>
-
-            <section id="recipes">
-                <h2>Рецепти</h2>
-
-                <p id="drinks-count" class="drinks-count"></p>
-
-                <div class="cards" id="drinks-list">
-                    <article class="recipe-card">
-                        <img src="assets/img/latte.jpg" alt="Склянка гарячого латте">
-                        <div class="card-content">
-                            <div class="badges">
-                                <span class="badge badge-hot">Гарячий</span>
-                                <span class="badge badge-non-alc">Безалкогольний</span>
-                            </div>
-                            <h3>Кава Латте</h3>
-                            <div class="recipe-meta">
-                                <span>⏱ 15 хв</span>
-                                <span>📊 Легко</span>
-                            </div>
-                            <p>Класичний кавовий напій з великою кількістю молока.</p>
-                        </div>
-                    </article>
-
-                    <article class="recipe-card">
-                        <img src="assets/img/mojito.jpg" alt="Холодний коктейль мохіто з м'ятою та лаймом">
-                        <div class="card-content">
-                            <div class="badges">
-                                <span class="badge badge-cold">Холодний</span>
-                                <span class="badge badge-alc">Алкогольний</span>
-                            </div>
-                            <h3>Мохіто</h3>
-                            <div class="recipe-meta">
-                                <span>⏱ 10 хв</span>
-                                <span>📊 Середньо</span>
-                            </div>
-                            <p>Освіжаючий напій на основі білого рому, м'яти та лайма.</p>
-                        </div>
-                    </article>
-
-                    <article class="recipe-card">
-                        <img src="assets/img/lemonade.jpg" alt="Глек свіжого лимонаду з льодом та м'ятою">
-                        <div class="card-content">
-                            <div class="badges">
-                                <span class="badge badge-cold">Холодний</span>
-                                <span class="badge badge-non-alc">Безалкогольний</span>
-                            </div>
-                            <h3>Домашній Лимонад</h3>
-                            <div class="recipe-meta">
-                                <span>⏱ 20 хв</span>
-                                <span>📊 Легко</span>
-                            </div>
-                            <p>Прохолодний літній напій зі свіжих лимонів та сиропу.</p>
-                        </div>
-                    </article>
-
-                    <article class="recipe-card">
-                        <img src="assets/img/glintveine.jpg" alt="Келих гарячого глінтвейну зі спеціями">
-                        <div class="card-content">
-                            <div class="badges">
-                                <span class="badge badge-hot">Гарячий</span>
-                                <span class="badge badge-alc">Алкогольний</span>
-                            </div>
-                            <h3>Глінтвейн</h3>
-                            <div class="recipe-meta">
-                                <span>⏱ 25 хв</span>
-                                <span>📊 Легко</span>
-                            </div>
-                            <p>Зігріваючий напій на основі червоного вина зі спеціями та цитрусовими.</p>
-                        </div>
-                    </article>
-                </div>
-            </section>
+                </section>
+            </div>
 
             <section id="api-recipes">
                 <h2>Рецепти з TheCocktailDB</h2>

@@ -1,29 +1,19 @@
+/*
+   Практична №10: обрано Vue 3 (глобальна збірка через CDN).
+   Причина вибору: шаблон компонента пишеться як звичайна HTML-розмітка без Babel/JSX і збірки,
+   а v-model та computed напряму відповідають завданню варіанта 15 (чекбокс-фільтр і похідні значення).
+*/
 console.log('script.js підключено');
 
 // Практична №9: адреса ендпоінта TheCocktailDB (тестовий ключ «1», без реєстрації).
 // Назву напою додаємо в кінець рядка.
 const API_URL = 'https://www.thecocktaildb.com/api/json/v1/1/search.php?s=';
 
-// Оголошення даних (масив об'єктів для варіанта 15)
-const drinksRecipes = [
-    { name: 'Кава Латте', type: 'Гарячий', alcohol: false, timeMinutes: 15, difficulty: 'Легко', description: 'Класичний кавовий напій з великою кількістю молока.', img: 'assets/img/latte.jpg', imgAlt: 'Склянка гарячого латте' },
-    { name: 'Мохіто', type: 'Холодний', alcohol: true, timeMinutes: 10, difficulty: 'Середньо', description: 'Освіжаючий напій на основі білого рому, м\'яти та лайма.', img: 'assets/img/mojito.jpg', imgAlt: 'Холодний коктейль мохіто з м\'ятою та лаймом' },
-    { name: 'Домашній Лимонад', type: 'Холодний', alcohol: false, timeMinutes: 20, difficulty: 'Легко', description: 'Прохолодний літній напій зі свіжих лимонів та сиропу.', img: 'assets/img/lemonade.jpg', imgAlt: 'Глек свіжого лимонаду з льодом та м\'ятою' },
-    { name: 'Глінтвейн', type: 'Гарячий', alcohol: true, timeMinutes: 25, difficulty: 'Легко', description: 'Зігріваючий напій на основі червоного вина зі спеціями та цитрусовими.', img: 'assets/img/glintveine.jpg', imgAlt: 'Келих гарячого глінтвейну зі спеціями' },
-    { name: 'Швидкий Експрес-чай', type: 'Гарячий', alcohol: false, timeMinutes: 3, difficulty: 'Легко', description: 'Швидкий гарячий напій з листового чаю та скибочки лимона.', img: 'assets/img/tea.jpg', imgAlt: 'Чашка гарячого чаю' }
-];
+// Складність нового рецепта визначаємо за часом приготування (у формі такого поля немає)
+const getDifficulty = time => (time <= 10 ? 'Легко' : time <= 20 ? 'Середньо' : 'Складно');
 
-// Крок 2: програмне видалення статичних карток-заглушок з практикуму 2
-document.querySelectorAll('#drinks-list .recipe-card').forEach(card => card.remove());
-
-// Крок 3: вибір контейнера списку та елемента-підсумку
-const listContainer = document.querySelector('#drinks-list');
-const drinksCount = document.querySelector('#drinks-count');
-
-// Функція перевіряє, чи готується напій 5 хвилин або швидше
-const isQuick = time => time <= 5;
-
-// Допоміжна функція: створює елемент із тегом, текстом та (за потреби) класами
+// Допоміжна функція: створює елемент із тегом, текстом та (за потреби) класами.
+// Лишається лише для блоку API з практикуму 9 (див. renderDrinks нижче).
 function createEl(tag, text, ...classes) {
     const el = document.createElement(tag);
     if (text) el.textContent = text;
@@ -31,13 +21,117 @@ function createEl(tag, text, ...classes) {
     return el;
 }
 
-// Функція рендеру: очищає контейнер (за замовчуванням #drinks-list) і створює картку для кожного рецепта з масиву.
-// Картка містить зображення, бейджі (тип і наявність алкоголю), назву, час/складність,
-// тип та опис. Для безалкогольних напоїв додає клас non-alcoholic.
-function renderDrinks(recipes, container = listContainer) {
+// Функція перевіряє, чи готується напій 5 хвилин або швидше
+const isQuick = time => time <= 5;
+
+/*
+   Крок 4 (Практична №10): компонент DrinkCard.
+   Отримує дані лише через props (name, type, timeMinutes, alcohol + допоміжні поля),
+   не звертається до глобальних змінних. Розмітка повторює картку з практикуму 7.
+*/
+const DrinkCard = {
+    props: ['name', 'type', 'timeMinutes', 'alcohol', 'difficulty', 'description', 'img', 'imgAlt'],
+    computed: {
+        typeClass() {
+            return this.type === 'Гарячий' ? 'badge-hot' : 'badge-cold';
+        },
+        quick() {
+            return isQuick(this.timeMinutes);
+        }
+    },
+    template: `
+        <article class="recipe-card" :class="{ 'non-alcoholic': !alcohol }" :data-time="timeMinutes">
+            <img v-if="img" :src="img" :alt="imgAlt">
+            <div class="card-content">
+                <div class="badges">
+                    <span class="badge" :class="typeClass">{{ type }}</span>
+                    <span v-if="alcohol" class="badge badge-alc">Алкогольний</span>
+                    <span v-else class="badge badge-non-alc">Безалкогольний</span>
+                </div>
+                <h3>{{ name }}</h3>
+                <div class="recipe-meta">
+                    <span>⏱ {{ timeMinutes }} хв</span>
+                    <span>📊 {{ difficulty }}</span>
+                    <span v-if="quick">⚡ Швидко</span>
+                </div>
+                <p class="drink-type">Тип: {{ type }}</p>
+                <p>{{ description }}</p>
+            </div>
+        </article>`
+};
+
+// Крок 3 і 6: дані — у реактивному стані (data()), фільтр і форма — у батьківському компоненті
+const app = Vue.createApp({
+    components: { DrinkCard },
+    data() {
+        return {
+            // Масив об'єктів варіанта 15; id потрібен для :key
+            recipes: [
+                { id: 1, name: 'Кава Латте', type: 'Гарячий', alcohol: false, timeMinutes: 15, difficulty: 'Легко', description: 'Класичний кавовий напій з великою кількістю молока.', img: 'assets/img/latte.jpg', imgAlt: 'Склянка гарячого латте' },
+                { id: 2, name: 'Мохіто', type: 'Холодний', alcohol: true, timeMinutes: 10, difficulty: 'Середньо', description: 'Освіжаючий напій на основі білого рому, м\'яти та лайма.', img: 'assets/img/mojito.jpg', imgAlt: 'Холодний коктейль мохіто з м\'ятою та лаймом' },
+                { id: 3, name: 'Домашній Лимонад', type: 'Холодний', alcohol: false, timeMinutes: 20, difficulty: 'Легко', description: 'Прохолодний літній напій зі свіжих лимонів та сиропу.', img: 'assets/img/lemonade.jpg', imgAlt: 'Глек свіжого лимонаду з льодом та м\'ятою' },
+                { id: 4, name: 'Глінтвейн', type: 'Гарячий', alcohol: true, timeMinutes: 25, difficulty: 'Легко', description: 'Зігріваючий напій на основі червоного вина зі спеціями та цитрусовими.', img: 'assets/img/glintveine.jpg', imgAlt: 'Келих гарячого глінтвейну зі спеціями' },
+                { id: 5, name: 'Швидкий Експрес-чай', type: 'Гарячий', alcohol: false, timeMinutes: 3, difficulty: 'Легко', description: 'Швидкий гарячий напій з листового чаю та скибочки лимона.', img: 'assets/img/tea.jpg', imgAlt: 'Чашка гарячого чаю' }
+            ],
+            onlyNonAlcoholic: false, // значення чекбокса «лише безалкогольні»
+            nextId: 6,
+            newName: '',
+            newType: 'Гарячий',
+            newTime: null,
+            newAlcohol: false
+        };
+    },
+    computed: {
+        // Фільтр за значенням чекбокса: список перераховується автоматично
+        visibleRecipes() {
+            return this.onlyNonAlcoholic ? this.recipes.filter(recipe => !recipe.alcohol) : this.recipes;
+        },
+        // Похідне значення: кількість безалкогольних серед усіх даних (а не лише показаних)
+        nonAlcoholicCount() {
+            return this.recipes.filter(recipe => !recipe.alcohol).length;
+        },
+        // Назва з самих пробілів проходить required, тому перевіряємо її окремо
+        nameError() {
+            return this.newName !== '' && this.newName.trim() === ''
+                ? 'Назва не може складатися лише з пробілів'
+                : '';
+        }
+    },
+    methods: {
+        addRecipe() {
+            if (this.nameError || !(this.newTime > 0)) return;
+            const name = this.newName.trim();
+            this.recipes.push({
+                id: this.nextId++,
+                name,
+                type: this.newType,
+                alcohol: this.newAlcohol,
+                timeMinutes: this.newTime,
+                difficulty: getDifficulty(this.newTime),
+                description: 'Рецепт додано користувачем.'
+            });
+            console.log(`Додано рецепт: ${name}. Усього рецептів: ${this.recipes.length}`);
+            // Очищення форми
+            this.newName = '';
+            this.newType = 'Гарячий';
+            this.newTime = null;
+            this.newAlcohol = false;
+        }
+    }
+}).mount('#app');
+
+/*
+   Крок 7 (Практична №10): ручний DOM-код практикумів 7-8 для списку #drinks-list
+   (видалення статичних карток, renderFiltered, обробники change/submit, масив drinksRecipes)
+   ЗАМІНЕНО компонентом Vue DrinkCard і реактивним станом вище, тому видалено.
+   Функція renderDrinks нижче залишена лише тому, що її викликає блок API з практикуму 9 (#api-list).
+*/
+
+// Функція рендеру для блоку API (практикум 9): очищає контейнер і створює картку для кожного рецепта.
+function renderDrinks(recipes, container) {
     container.innerHTML = '';
 
-    // Якщо за фільтром нічого не знайдено — показуємо повідомлення
+    // Якщо нічого не знайдено — показуємо повідомлення
     if (recipes.length === 0) {
         container.append(createEl('p', 'Рецептів за обраним фільтром немає.', 'empty-message'));
     }
@@ -46,7 +140,7 @@ function renderDrinks(recipes, container = listContainer) {
         const card = createEl('article', '', 'recipe-card');
         if (recipe.timeMinutes !== undefined) card.dataset.time = recipe.timeMinutes;
 
-        // Рецепти з форми не мають зображення — тоді img не створюємо
+        // Рецепти з API мають зображення — тоді img створюємо
         const img = recipe.img ? document.createElement('img') : null;
         if (img) {
             img.src = recipe.img;
@@ -55,8 +149,7 @@ function renderDrinks(recipes, container = listContainer) {
 
         const content = createEl('div', '', 'card-content');
 
-        // Бейджі: гарячий/холодний та алкогольний/безалкогольний.
-        // Дані з API можуть не містити частину полів, тому кожен бейдж створюємо лише за наявності даних.
+        // Бейджі: дані з API можуть не містити частину полів, тому кожен бейдж створюємо лише за наявності даних.
         const badges = createEl('div', '', 'badges');
         if (recipe.type) {
             const typeClass = recipe.type === 'Гарячий' ? 'badge-hot' : 'badge-cold';
@@ -73,7 +166,6 @@ function renderDrinks(recipes, container = listContainer) {
         if (badges.children.length) content.append(badges);
         content.append(title);
 
-        // Рядок з часом приготування та складністю (лише для локальних рецептів)
         if (recipe.timeMinutes !== undefined) {
             const meta = createEl('div', '', 'recipe-meta');
             meta.append(
@@ -101,84 +193,6 @@ function renderDrinks(recipes, container = listContainer) {
         container.append(card);
     });
 }
-
-// Крок 2: вибір форми та її полів
-const form = document.querySelector('#add-recipe-form');
-const nameInput = document.querySelector('#recipe-name');
-const typeSelect = document.querySelector('#recipe-type');
-const timeInput = document.querySelector('#recipe-time');
-const alcoholCheckbox = document.querySelector('#recipe-alcohol');
-const onlyNonAlcCheckbox = document.querySelector('#only-non-alcoholic');
-
-// Перемальовує список з урахуванням чекбокса-фільтра «лише безалкогольні»
-function renderFiltered() {
-    const list = onlyNonAlcCheckbox.checked
-        ? drinksRecipes.filter(recipe => !recipe.alcohol)
-        : drinksRecipes;
-    renderDrinks(list);
-
-    // Оновлення підсумку: кількість безалкогольних рецептів (серед усіх даних, а не лише показаних)
-    const nonAlcoholicCount = drinksRecipes.filter(recipe => !recipe.alcohol).length;
-    drinksCount.textContent = `Безалкогольних рецептів: ${nonAlcoholicCount}. Показано: ${list.length} з ${drinksRecipes.length}`;
-}
-
-// Складність нового рецепта визначаємо за часом приготування (у формі такого поля немає)
-const getDifficulty = time => (time <= 10 ? 'Легко' : time <= 20 ? 'Середньо' : 'Складно');
-
-// Крок 8: додаткова валідація на подію input — час приготування має бути більшим за нуль
-timeInput.addEventListener('input', () => {
-    if (timeInput.value !== '' && Number(timeInput.value) <= 0) {
-        timeInput.setCustomValidity('Час приготування має бути більшим за нуль');
-    } else {
-        timeInput.setCustomValidity(''); // повернути стандартний коректний стан
-    }
-});
-
-// Назва з самих пробілів проходить required, тому перевіряємо її окремо
-nameInput.addEventListener('input', () => {
-    if (nameInput.value !== '' && nameInput.value.trim() === '') {
-        nameInput.setCustomValidity('Назва не може складатися лише з пробілів');
-    } else {
-        nameInput.setCustomValidity('');
-    }
-});
-
-// Кроки 3-7: обробка надсилання форми без перезавантаження сторінки
-form.addEventListener('submit', event => {
-    event.preventDefault(); // без цього сторінка перезавантажиться
-
-    // Крок 4: зчитування значень полів
-    const name = nameInput.value.trim();
-    const type = typeSelect.value;
-    const timeMinutes = Number(timeInput.value);
-    const alcohol = alcoholCheckbox.checked;
-
-    // Крок 5: новий об'єкт тієї самої форми, що й елементи масиву, і додавання через push
-    drinksRecipes.push({
-        name,
-        type,
-        alcohol,
-        timeMinutes,
-        difficulty: getDifficulty(timeMinutes),
-        description: 'Рецепт додано користувачем.'
-    });
-
-    // Крок 6: повторний виклик рендеру з оновленим масивом
-    renderFiltered();
-
-    // Крок 7: очищення форми
-    form.reset();
-    console.log(`Додано рецепт: ${name}. Усього рецептів: ${drinksRecipes.length}`);
-});
-
-// Крок 9: друга подія варіанта — change на чекбоксі «лише безалкогольні»
-onlyNonAlcCheckbox.addEventListener('change', renderFiltered);
-
-// Форма фільтра не має надсилатися (Enter у select не повинен перезавантажувати сторінку)
-document.querySelector('#filter form').addEventListener('submit', event => event.preventDefault());
-
-// Початкове відображення списку
-renderFiltered();
 
 const apiForm = document.querySelector('#api-search-form');
 const apiQuery = document.querySelector('#api-query');

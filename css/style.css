@@ -445,3 +445,14 @@ footer {
     font-size: 0.9rem;
     margin-top: 40px;
 }
+/* Практична №10: Vue - приховуємо необроблений шаблон до монтування, стиль повідомлення форми */
+[v-cloak] {
+    display: none;
+}
+
+.form-error {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #922B21;
+}
