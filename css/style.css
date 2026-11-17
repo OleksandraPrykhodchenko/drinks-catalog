@@ -456,3 +456,14 @@ footer {
     font-weight: 600;
     color: #922B21;
 }
+
+/* Практична №11: кнопка збереження рецепта та список інгредієнтів збереженої картки */
+.btn-save {
+    margin-top: 12px;
+}
+
+.ingredients {
+    margin: 0 0 12px;
+    padding-left: 20px;
+    font-size: 0.95rem;
+}

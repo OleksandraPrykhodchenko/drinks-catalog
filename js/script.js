@@ -128,7 +128,7 @@ const app = Vue.createApp({
 */
 
 // Функція рендеру для блоку API (практикум 9): очищає контейнер і створює картку для кожного рецепта.
-function renderDrinks(recipes, container) {
+function renderDrinks(recipes, container, onSave) {
     container.innerHTML = '';
 
     // Якщо нічого не знайдено — показуємо повідомлення
@@ -182,6 +182,14 @@ function renderDrinks(recipes, container) {
             content.append(createEl('p', `Тип: ${recipe.type}`, 'drink-type'));
         }
         content.append(createEl('p', recipe.description));
+        // Практична №11: кнопка «Зберегти рецепт» (лише для карток з API, які мають id)
+        if (onSave && recipe.id) {
+            const saveBtn = createEl('button', 'Зберегти рецепт', 'btn', 'btn-save');
+            saveBtn.type = 'button';
+            saveBtn.dataset.saveId = recipe.id;
+            saveBtn.addEventListener('click', () => onSave(recipe));
+            content.append(saveBtn);
+        }
         if (img) card.append(img);
         card.append(content);
 
@@ -227,6 +235,19 @@ function showError(message) {
     apiError.hidden = false;
 }
 
+// Практична №11: API віддає інгредієнти окремими полями strIngredient1..15 і strMeasure1..15 —
+// збираємо їх в один масив рядків виду «мірка інгредієнт»
+function collectIngredients(item) {
+    const result = [];
+    for (let i = 1; i <= 15; i++) {
+        const name = item[`strIngredient${i}`];
+        if (!name) continue;
+        const measure = item[`strMeasure${i}`];
+        result.push(measure ? `${measure.trim()} ${name}` : name);
+    }
+    return result;
+}
+
 // Крок 6: зіставлення полів відповіді API з формою об'єкта, яку приймає renderDrinks
 function mapApiDrink(item) {
     let alcohol; // undefined — API не дає однозначної відповіді (наприклад, «Optional alcohol»)
@@ -234,8 +255,11 @@ function mapApiDrink(item) {
     if (item.strAlcoholic === 'Non alcoholic') alcohol = false;
 
     return {
+        id: item.idDrink,
         name: item.strDrink,
         alcohol,
+        ingredients: collectIngredients(item),
+        instructions: item.strInstructions || 'Інструкцію не вказано.',
         description: item.strInstructions || 'Інструкцію не вказано.',
         img: item.strDrinkThumb,
         imgAlt: `Напій ${item.strDrink}`
@@ -274,7 +298,8 @@ async function loadData(query = lastQuery) {
         }
 
         // Крок 6: та сама функція рендеру з практикуму 7, але в інший контейнер
-        renderDrinks(data.drinks.map(mapApiDrink), apiList);
+        renderDrinks(data.drinks.map(mapApiDrink), apiList, saveRecipe);
+        markSavedButtons();
     } catch (error) {
         // Мережеві збої (TypeError від fetch) не мають userMessage — показуємо загальний текст
         apiList.innerHTML = '';
@@ -297,3 +322,236 @@ apiRefreshBtn.addEventListener('click', () => loadData());
 
 // Початкове завантаження (margarita)
 loadData();
+
+/* ========================================================================
+   Практична №11: локальні сховища (localStorage / IndexedDB)
+   Варіант 15. Модель запису: { id, name, ingredients[], instructions, img }.
+   Сховище "cocktails", keyPath "id". Сценарій: кнопка «Зберегти рецепт» на картці
+   з результатів API записує рецепт в IndexedDB для офлайн-перегляду.
+   ======================================================================== */
+
+const LS_KEY = 'appItems';            // ключ localStorage зі збереженими рецептами
+const LS_MIGRATED = 'migrated';       // прапорець завершеної міграції localStorage -> IndexedDB
+const DB_NAME = 'DrinksDB';
+const DB_VERSION = 1;
+const STORE = 'cocktails';
+
+// Крок 2: збереження в localStorage (рядок через JSON.stringify)
+function saveToLocalStorage(items) {
+    localStorage.setItem(LS_KEY, JSON.stringify(items));
+}
+
+// Крок 2: читання з localStorage; пошкоджений JSON не має «валити» застосунок
+function loadFromLocalStorage() {
+    try {
+        const raw = localStorage.getItem(LS_KEY);
+        return raw ? JSON.parse(raw) : [];
+    } catch (error) {
+        console.error('Пошкоджені дані в localStorage:', error);
+        return [];
+    }
+}
+
+// Кроки 5-6: відкриття бази. onupgradeneeded спрацьовує лише при створенні/підвищенні версії,
+// саме тут створюється object store з ключем id.
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE)) {
+                db.createObjectStore(STORE, { keyPath: 'id' });
+            }
+        };
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+// Крок 7: додати або оновити запис (put працює і для нового, і для наявного id)
+async function addItem(item) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).put(item);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+// Крок 7: оновлення — те саме put з тим самим id
+const updateItem = addItem;
+
+// Крок 7: прочитати всі записи (транзакція readonly)
+async function getAllItems() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readonly');
+        const request = tx.objectStore(STORE).getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+// Крок 7: видалити запис за id (транзакція readwrite)
+async function deleteItem(id) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+// Крок 8: одноразова міграція. Якщо сховище порожнє, а в localStorage є старі дані — переносимо їх
+// і ставимо прапорець, щоб не повторювати перенесення при наступних завантаженнях.
+async function migrateFromLocalStorage() {
+    if (localStorage.getItem(LS_MIGRATED) === 'true') return;
+    const oldItems = loadFromLocalStorage();
+    const current = await getAllItems();
+    if (current.length === 0 && oldItems.length > 0) {
+        for (const item of oldItems) {
+            await addItem(item);
+        }
+        localStorage.setItem(LS_MIGRATED, 'true');
+        console.log(`Міграція: перенесено ${oldItems.length} рецептів з localStorage в IndexedDB`);
+    }
+}
+
+// Крок 11: якщо IndexedDB недоступна (наприклад, приватний режим), працюємо через localStorage
+let idbAvailable = true;
+
+async function getSavedRecipes() {
+    return idbAvailable ? getAllItems() : loadFromLocalStorage();
+}
+
+async function putSavedRecipe(recipe) {
+    if (idbAvailable) return addItem(recipe);
+    // Крок 3: у режимі localStorage зберігаємо після кожної зміни
+    const items = loadFromLocalStorage().filter(item => item.id !== recipe.id);
+    items.push(recipe);
+    saveToLocalStorage(items);
+}
+
+async function removeSavedRecipe(id) {
+    if (idbAvailable) return deleteItem(id);
+    saveToLocalStorage(loadFromLocalStorage().filter(item => item.id !== id));
+}
+
+const savedList = document.querySelector('#saved-list');
+const savedCount = document.querySelector('#saved-count');
+const savedError = document.querySelector('#saved-error');
+
+// Ідентифікатори вже збережених рецептів (для блокування кнопки «Зберегти рецепт»)
+let savedIds = new Set();
+
+function showSavedError(message) {
+    savedError.textContent = message;
+    savedError.hidden = !message;
+}
+
+// Позначає на картках з API кнопки тих рецептів, які вже збережено
+function markSavedButtons() {
+    document.querySelectorAll('#api-list [data-save-id]').forEach(btn => {
+        const saved = savedIds.has(btn.dataset.saveId);
+        btn.disabled = saved;
+        btn.textContent = saved ? 'Збережено' : 'Зберегти рецепт';
+    });
+}
+
+// Крок 9: рендер збережених рецептів із даних сховища
+function renderSaved(items) {
+    savedList.innerHTML = '';
+    savedCount.textContent = `Збережено рецептів: ${items.length}`;
+
+    if (items.length === 0) {
+        savedList.append(createEl('p', 'Збережених рецептів ще немає. Натисніть «Зберегти рецепт» на картці вище.', 'empty-message'));
+        return;
+    }
+
+    items.forEach(item => {
+        const card = createEl('article', '', 'recipe-card');
+        if (item.img) {
+            const img = document.createElement('img');
+            img.src = item.img;
+            img.setAttribute('alt', `Напій ${item.name}`);
+            card.append(img);
+        }
+        const content = createEl('div', '', 'card-content');
+        content.append(createEl('h3', item.name));
+
+        const list = createEl('ul', '', 'ingredients');
+        item.ingredients.forEach(text => list.append(createEl('li', text)));
+        content.append(createEl('p', 'Інгредієнти:', 'drink-type'), list);
+        content.append(createEl('p', item.instructions));
+
+        const delBtn = createEl('button', 'Видалити', 'btn', 'btn-secondary');
+        delBtn.type = 'button';
+        delBtn.addEventListener('click', () => deleteSavedRecipe(item.id));
+        content.append(delBtn);
+
+        card.append(content);
+        savedList.append(card);
+    });
+}
+
+// Оновлює список на екрані з даних сховища після кожної CRUD-операції
+async function refreshSaved() {
+    try {
+        const items = await getSavedRecipes();
+        savedIds = new Set(items.map(item => item.id));
+        renderSaved(items);
+        markSavedButtons();
+    } catch (error) {
+        console.error(error);
+        showSavedError('Не вдалося прочитати збережені рецепти.');
+    }
+}
+
+// Кнопка «Зберегти рецепт»: записує рецепт у сховище (лише поля моделі)
+async function saveRecipe(recipe) {
+    try {
+        await putSavedRecipe({
+            id: recipe.id,
+            name: recipe.name,
+            ingredients: recipe.ingredients,
+            instructions: recipe.instructions,
+            img: recipe.img
+        });
+        showSavedError('');
+        await refreshSaved();
+    } catch (error) {
+        console.error(error);
+        showSavedError('Не вдалося зберегти рецепт.');
+    }
+}
+
+async function deleteSavedRecipe(id) {
+    try {
+        await removeSavedRecipe(id);
+        showSavedError('');
+        await refreshSaved();
+    } catch (error) {
+        console.error(error);
+        showSavedError('Не вдалося видалити рецепт.');
+    }
+}
+
+// Ініціалізація сховища: відкриття бази, міграція, перше відображення
+async function initStorage() {
+    try {
+        await openDB();
+        await migrateFromLocalStorage();
+    } catch (error) {
+        // Крок 11: зрозуміле повідомлення для користувача, технічні деталі — у консоль
+        idbAvailable = false;
+        console.error('IndexedDB недоступна:', error);
+        showSavedError('IndexedDB недоступна (можливо, приватний режим). Рецепти зберігаються в localStorage.');
+    }
+    await refreshSaved();
+}
+
+initStorage();
