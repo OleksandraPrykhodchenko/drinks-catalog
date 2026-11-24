@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Каталог рецептів напоїв</title>
     <link rel="stylesheet" href="css/style.css">
-    <!-- Vue 3 (глобальна збірка через CDN, без збірки й Node.js) -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js" defer></script>
+    <!-- Vue 3 (глобальна збірка через CDN, без збірки й Node.js).
+         Практична №15: точна версія замість «vue@3» і хеш integrity (SRI): якщо файл на CDN
+         підмінять, браузер його не виконає. -->
+    <script src="https://unpkg.com/vue@3.5.46/dist/vue.global.js"
+            integrity="sha384-IyLsDOfwJzh2YnHSfEdOnfLqkMnEDbLRmAPqhd53gRiJ2WtzWekRn+e2abm4hUNo"
+            crossorigin="anonymous" defer></script>
     <script src="js/script.js" defer></script>
 </head>
 <body>

@@ -315,6 +315,18 @@ function collectIngredients(item) {
     return result;
 }
 
+// Практична №15: адресу зображення з API не використовуємо наосліп. Приймаємо лише https-посилання
+// або локальний файл з assets/, інакше картку показуємо без зображення.
+function safeImageUrl(url) {
+    if (typeof url !== 'string') return '';
+    if (url.startsWith('assets/')) return url;
+    try {
+        return new URL(url).protocol === 'https:' ? url : '';
+    } catch {
+        return '';
+    }
+}
+
 // Крок 6: зіставлення полів відповіді API з формою об'єкта, яку приймає renderDrinks
 function mapApiDrink(item) {
     let alcohol; // undefined — API не дає однозначної відповіді (наприклад, «Optional alcohol»)
@@ -328,7 +340,7 @@ function mapApiDrink(item) {
         ingredients: collectIngredients(item),
         instructions: item.strInstructions || 'Інструкцію не вказано.',
         description: item.strInstructions || 'Інструкцію не вказано.',
-        img: item.strDrinkThumb,
+        img: safeImageUrl(item.strDrinkThumb),
         imgAlt: `Напій ${item.strDrink}`
     };
 }

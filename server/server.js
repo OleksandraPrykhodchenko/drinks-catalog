@@ -29,6 +29,29 @@ const MIME = {
     '.svg': 'image/svg+xml'
 };
 
+/*
+   Практична №15: заголовки безпеки для кожної відповіді.
+   Content-Security-Policy дозволяє скрипти лише з цього сервера і з unpkg.com (Vue), а inline-код
+   (<script> у розмітці, атрибути onerror/onclick) не дозволяє зовсім. Тому навіть якщо рядок на кшталт
+   <img src=x onerror="alert('XSS')"> колись потрапить в innerHTML, браузер не виконає обробник.
+   'unsafe-eval' потрібен лише тому, що глобальна збірка Vue компілює шаблон #app у браузері (new Function).
+*/
+const SECURITY_HEADERS = {
+    'Content-Security-Policy': [
+        "default-src 'self'",
+        "script-src 'self' https://unpkg.com 'unsafe-eval'",
+        "style-src 'self'",
+        "img-src 'self' https://www.thecocktaildb.com",
+        "connect-src 'self'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'"
+    ].join('; '),
+    'X-Content-Type-Options': 'nosniff',   // браузер не вгадує тип файлу всупереч Content-Type
+    'Referrer-Policy': 'no-referrer'        // адреса сторінки не йде стороннім серверам зображень
+};
+
 // Відповідь у форматі JSON з правильним Content-Type і статус-кодом
 function sendJson(res, status, data) {
     res.writeHead(status, { 'Content-Type': MIME['.json'] });
@@ -69,6 +92,9 @@ function serveStatic(res, pathname) {
 }
 
 const server = http.createServer((req, res) => {
+    // Практична №15: заголовки безпеки додаються до будь-якої відповіді, і JSON, і файлів
+    for (const [name, value] of Object.entries(SECURITY_HEADERS)) res.setHeader(name, value);
+
     const url = new URL(req.url, `http://${req.headers.host}`);
     console.log(`${req.method} ${req.url}`);
 
