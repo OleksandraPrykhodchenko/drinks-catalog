@@ -222,7 +222,9 @@ function renderDrinks(recipes, container, onSave) {
             badges.append(createEl('span', 'Безалкогольний', 'badge', 'badge-non-alc'));
         }
 
-        const title = createEl('h3', recipe.name);
+        // Практична №13: якщо рецепт має id, назва веде на сторінку деталей #/cocktails/:id
+        const title = recipe.id ? createEl('h3') : createEl('h3', recipe.name);
+        if (recipe.id) title.append(createLink(`/cocktails/${recipe.id}`, recipe.name));
 
         if (badges.children.length) content.append(badges);
         content.append(title);
@@ -263,16 +265,16 @@ function renderDrinks(recipes, container, onSave) {
     });
 }
 
-const apiForm = document.querySelector('#api-search-form');
-const apiQuery = document.querySelector('#api-query');
-const apiSearchBtn = document.querySelector('#api-search-btn');
-const apiRefreshBtn = document.querySelector('#api-refresh-btn');
-const apiStatus = document.querySelector('#api-status');
-const apiError = document.querySelector('#api-error');
-const apiList = document.querySelector('#api-list');
+// Практична №13: блок API тепер є «сторінкою» SPA і створюється заново при кожному переході,
+// тому елементи шукаємо в момент використання, а не зберігаємо в константах.
+const $ = selector => document.querySelector(selector);
 
 // Остання успішно надіслана назва — її повторює кнопка «Оновити»
-let lastQuery = apiQuery.value.trim();
+let lastQuery = 'margarita';
+// Практична №13: результати останнього пошуку. Повернення на «/» і перехід на деталі
+// беруть рецепт звідси, без повторного мережевого запиту.
+let lastResults = null;
+const recipeCache = new Map();
 
 // Створює помилку з зрозумілим для користувача повідомленням (details — для розробника)
 function createApiError(userMessage, details) {
@@ -283,17 +285,20 @@ function createApiError(userMessage, details) {
 
 // Крок 7: стан завантаження — текст і заблоковані кнопки
 function showLoading(isLoading) {
-    apiStatus.textContent = 'Завантаження…';
-    apiStatus.hidden = !isLoading;
-    apiSearchBtn.disabled = isLoading;
-    apiRefreshBtn.disabled = isLoading;
-    apiList.setAttribute('aria-busy', String(isLoading));
+    // Користувач міг перейти на іншу сторінку, поки йшов запит: тоді елементів уже немає
+    if (!$('#api-status')) return;
+    $('#api-status').textContent = 'Завантаження…';
+    $('#api-status').hidden = !isLoading;
+    $('#api-search-btn').disabled = isLoading;
+    $('#api-refresh-btn').disabled = isLoading;
+    $('#api-list').setAttribute('aria-busy', String(isLoading));
 }
 
 // Крок 8: виведення зрозумілого повідомлення про помилку на сторінці
 function showError(message) {
-    apiError.textContent = message;
-    apiError.hidden = false;
+    if (!$('#api-error')) return;
+    $('#api-error').textContent = message;
+    $('#api-error').hidden = false;
 }
 
 // Практична №11: API віддає інгредієнти окремими полями strIngredient1..15 і strMeasure1..15 —
@@ -332,7 +337,7 @@ function mapApiDrink(item) {
 async function loadData(query = lastQuery) {
     lastQuery = query;
     showLoading(true);
-    apiError.hidden = true;
+    if ($('#api-error')) $('#api-error').hidden = true;
 
     try {
         // Крок 3: запит і очікування відповіді
@@ -359,11 +364,16 @@ async function loadData(query = lastQuery) {
         }
 
         // Крок 6: та сама функція рендеру з практикуму 7, але в інший контейнер
-        renderDrinks(data.drinks.map(mapApiDrink), apiList, saveRecipe);
-        markSavedButtons();
+        lastResults = data.drinks.map(mapApiDrink);
+        lastResults.forEach(recipe => recipeCache.set(recipe.id, recipe));
+        if ($('#api-list')) {
+            renderDrinks(lastResults, $('#api-list'), saveRecipe);
+            markSavedButtons();
+        }
     } catch (error) {
         // Мережеві збої (TypeError від fetch) не мають userMessage — показуємо загальний текст
-        apiList.innerHTML = '';
+        lastResults = null;
+        if ($('#api-list')) $('#api-list').innerHTML = '';
         showError(error.userMessage ?? 'Не вдалося завантажити рецепти. Перевірте з\'єднання та спробуйте ще раз.');
         console.error(error); // технічні деталі — лише для розробника
     } finally {
@@ -372,17 +382,7 @@ async function loadData(query = lastQuery) {
     }
 }
 
-// Пошук за введеною назвою
-apiForm.addEventListener('submit', event => {
-    event.preventDefault();
-    loadData(apiQuery.value.trim());
-});
-
-// Крок 10: кнопка «Оновити» повторює останній запит без перезавантаження сторінки
-apiRefreshBtn.addEventListener('click', () => loadData());
-
-// Початкове завантаження (margarita)
-loadData();
+// Практична №13: обробники форми пошуку та початкове завантаження перенесено у view-функцію renderHome
 
 /* ========================================================================
    Практична №11: локальні сховища (localStorage / IndexedDB)
@@ -502,16 +502,18 @@ async function removeSavedRecipe(id) {
     saveToLocalStorage(loadFromLocalStorage().filter(item => item.id !== id));
 }
 
-const savedList = document.querySelector('#saved-list');
-const savedCount = document.querySelector('#saved-count');
-const savedError = document.querySelector('#saved-error');
-
 // Ідентифікатори вже збережених рецептів (для блокування кнопки «Зберегти рецепт»)
 let savedIds = new Set();
 
+// Практична №13: повідомлення про недоступність IndexedDB запам'ятовуємо, щоб показати його
+// на сторінці «Збережені», навіть якщо вона відкрита пізніше
+let storageNotice = '';
+
 function showSavedError(message) {
-    savedError.textContent = message;
-    savedError.hidden = !message;
+    const savedError = $('#saved-error');
+    if (!savedError) return;
+    savedError.textContent = message || storageNotice;
+    savedError.hidden = !(message || storageNotice);
 }
 
 // Позначає на картках з API кнопки тих рецептів, які вже збережено
@@ -525,11 +527,15 @@ function markSavedButtons() {
 
 // Крок 9: рендер збережених рецептів із даних сховища
 function renderSaved(items) {
+    const savedList = $('#saved-list');
+    if (!savedList) return; // сторінка «Збережені» зараз не відкрита
     savedList.innerHTML = '';
-    savedCount.textContent = `Збережено рецептів: ${items.length}`;
+    $('#saved-count').textContent = `Збережено рецептів: ${items.length}`;
 
     if (items.length === 0) {
-        savedList.append(createEl('p', 'Збережених рецептів ще немає. Натисніть «Зберегти рецепт» на картці вище.', 'empty-message'));
+        const empty = createEl('p', 'Збережених рецептів ще немає. Знайдіть напій на сторінці ', 'empty-message');
+        empty.append(createLink('/', 'пошуку'), ' і натисніть «Зберегти рецепт».');
+        savedList.append(empty);
         return;
     }
 
@@ -542,7 +548,9 @@ function renderSaved(items) {
             card.append(img);
         }
         const content = createEl('div', '', 'card-content');
-        content.append(createEl('h3', item.name));
+        const title = createEl('h3');
+        title.append(createLink(`/cocktails/${item.id}`, item.name));
+        content.append(title);
 
         const list = createEl('ul', '', 'ingredients');
         item.ingredients.forEach(text => list.append(createEl('li', text)));
@@ -610,9 +618,211 @@ async function initStorage() {
         // Крок 11: зрозуміле повідомлення для користувача, технічні деталі — у консоль
         idbAvailable = false;
         console.error('IndexedDB недоступна:', error);
-        showSavedError('IndexedDB недоступна (можливо, приватний режим). Рецепти зберігаються в localStorage.');
+        storageNotice = 'IndexedDB недоступна (можливо, приватний режим). Рецепти зберігаються в localStorage.';
     }
     await refreshSaved();
 }
 
-initStorage();
+/* ========================================================================
+   Практична №13: SPA та клієнтська маршрутизація (hash-based).
+   Обрано hash-роутинг: адреса сторінки зберігається після # (наприклад, #/cocktails/11007),
+   браузер не надсилає її на сервер, тому F5 і пряме відкриття працюють без налаштування
+   сервера (і з вбудованим сервером WebStorm, і з file://).
+   ======================================================================== */
+
+const page = $('#page');
+const catalogApp = $('#app'); // локальний каталог Vue (практикуми 10, 12) показуємо лише на головній
+
+// Створює посилання для клієнтської навігації (data-link обробляє роутер)
+function createLink(path, text) {
+    const link = createEl('a', text);
+    link.href = `#${path}`;
+    link.dataset.link = '';
+    return link;
+}
+
+// Копіює розмітку сторінки з <template> у контейнер #page
+function mountTemplate(id) {
+    page.innerHTML = '';
+    page.append(document.querySelector(id).content.cloneNode(true));
+}
+
+// View «/»: пошук і список рецептів з TheCocktailDB (fetch, практикум 9)
+function renderHome() {
+    mountTemplate('#tpl-home');
+    $('#api-query').value = lastQuery;
+
+    $('#api-search-form').addEventListener('submit', event => {
+        event.preventDefault();
+        loadData($('#api-query').value.trim());
+    });
+    // Кнопка «Оновити» повторює останній запит без перезавантаження сторінки
+    $('#api-refresh-btn').addEventListener('click', () => loadData());
+
+    // Повернення на головну не повторює запит: показуємо вже отримані результати
+    if (lastResults) {
+        renderDrinks(lastResults, $('#api-list'), saveRecipe);
+        markSavedButtons();
+    } else {
+        loadData();
+    }
+}
+
+// View «/saved»: збережені рецепти зі сховища "cocktails" (IndexedDB, практикум 11)
+async function renderSavedPage() {
+    mountTemplate('#tpl-saved');
+    showSavedError('');
+    await refreshSaved();
+}
+
+// Пошук рецепта для сторінки деталей: спочатку результати пошуку, потім IndexedDB,
+// і лише якщо рецепта ніде немає (наприклад, F5 на #/cocktails/:id) - запит до API за id
+async function findRecipe(id) {
+    if (recipeCache.has(id)) return recipeCache.get(id);
+
+    const saved = (await getSavedRecipes()).find(item => item.id === id);
+    if (saved) return saved;
+
+    const response = await fetch(`https://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=${encodeURIComponent(id)}`);
+    if (!response.ok) throw new Error(`Сервер відповів кодом ${response.status}`);
+    const data = await response.json();
+    if (!Array.isArray(data.drinks)) return null;
+    const recipe = mapApiDrink(data.drinks[0]);
+    recipeCache.set(recipe.id, recipe);
+    return recipe;
+}
+
+// View «/cocktails/:id»: деталі одного рецепта (ingredients, instructions)
+async function renderDetail({ id }) {
+    page.innerHTML = '';
+    page.append(createEl('p', 'Завантаження…', 'api-status'));
+
+    let recipe;
+    try {
+        recipe = await findRecipe(id);
+    } catch (error) {
+        console.error(error);
+    }
+    // Поки чекали дані, користувач міг перейти на іншу сторінку
+    if (getPath() !== `/cocktails/${id}`) return;
+
+    page.innerHTML = '';
+    const back = createEl('p', '', 'detail-back');
+    back.append(createLink('/', '← До пошуку'), ' · ', createLink('/saved', 'Збережені рецепти'));
+    page.append(back);
+
+    if (!recipe) {
+        page.append(createEl('p', `Рецепт з id ${id} не знайдено. Можливо, немає з'єднання з мережею, а сам рецепт не збережено.`, 'api-error'));
+        return;
+    }
+
+    const article = createEl('article', '', 'recipe-detail');
+    if (recipe.img) {
+        const img = document.createElement('img');
+        img.src = recipe.img;
+        img.alt = `Напій ${recipe.name}`;
+        article.append(img);
+    }
+    const body = createEl('div', '', 'recipe-detail__body');
+    body.append(createEl('h2', recipe.name));
+
+    const list = createEl('ul', '', 'ingredients');
+    recipe.ingredients.forEach(text => list.append(createEl('li', text)));
+    body.append(createEl('h3', 'Інгредієнти'), list);
+    body.append(createEl('h3', 'Приготування'), createEl('p', recipe.instructions));
+
+    // Кнопка збереження з практикуму 11: та сама функція saveRecipe і та сама позначка data-save-id
+    const saveBtn = createEl('button', 'Зберегти рецепт', 'btn', 'btn-save');
+    saveBtn.type = 'button';
+    saveBtn.dataset.saveId = recipe.id;
+    saveBtn.disabled = savedIds.has(recipe.id);
+    if (saveBtn.disabled) saveBtn.textContent = 'Збережено';
+    saveBtn.addEventListener('click', async () => {
+        await saveRecipe(recipe);
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Збережено';
+    });
+    body.append(saveBtn);
+
+    article.append(body);
+    page.append(article);
+}
+
+// View для неіснуючого маршруту
+function renderNotFound() {
+    page.innerHTML = '';
+    const section = createEl('section', '', 'not-found');
+    section.append(createEl('h2', 'Сторінку не знайдено'));
+    const text = createEl('p', 'За цією адресою нічого немає. Поверніться на ');
+    text.append(createLink('/', 'головну сторінку'), '.');
+    section.append(text);
+    page.append(section);
+}
+
+// Таблиця маршрутів: патерн шляху -> view-функція і заголовок вкладки.
+// :id - параметр (idDrink із TheCocktailDB, він же ключ у сховищі "cocktails").
+const routes = [
+    { path: '/', view: renderHome, title: 'Пошук рецептів' },
+    { path: '/cocktails/:id', view: renderDetail, title: 'Рецепт' },
+    { path: '/saved', view: renderSavedPage, title: 'Збережені рецепти' }
+];
+
+// Порівнює шлях з патернами по сегментах і витягує параметри (:id)
+function matchRoute(path) {
+    const pathParts = path.split('/').filter(Boolean);
+    for (const route of routes) {
+        const routeParts = route.path.split('/').filter(Boolean);
+        if (routeParts.length !== pathParts.length) continue;
+        const params = {};
+        const isMatch = routeParts.every((part, i) => {
+            if (part.startsWith(':')) {
+                params[part.slice(1)] = decodeURIComponent(pathParts[i]);
+                return true;
+            }
+            return part === pathParts[i];
+        });
+        if (isMatch) return { route, params };
+    }
+    return null; // маршрут не знайдено - сторінка 404
+}
+
+// Поточний шлях із хеша: '#/cocktails/11007' -> '/cocktails/11007'
+function getPath() {
+    return location.hash.slice(1) || '/';
+}
+
+// Головна функція роутера: знаходить маршрут і викликає його view
+function router() {
+    const path = getPath();
+    const match = matchRoute(path);
+
+    catalogApp.hidden = path !== '/';
+    document.querySelectorAll('.site-nav a[data-link]').forEach(link => {
+        link.classList.toggle('is-active', link.getAttribute('href') === `#${path}`);
+    });
+
+    if (match) {
+        document.title = `${match.route.title} · Каталог рецептів напоїв`;
+        match.route.view(match.params);
+    } else {
+        document.title = 'Сторінку не знайдено · Каталог рецептів напоїв';
+        renderNotFound();
+    }
+    window.scrollTo(0, 0);
+}
+
+// Клієнтська навігація: клік по посиланню з data-link змінює хеш без звичайного переходу
+document.addEventListener('click', event => {
+    const link = event.target.closest('a[data-link]');
+    if (!link) return;
+    event.preventDefault();
+    const target = link.getAttribute('href');
+    if (location.hash === target) router(); // повторний клік по тій самій сторінці
+    else location.hash = target;            // далі спрацює hashchange
+});
+
+// «Назад» / «Вперед» у браузері та ручна зміна адреси
+window.addEventListener('hashchange', router);
+
+// Спершу відкриваємо сховище (практикум 11), потім рендеримо поточну сторінку
+initStorage().finally(router);

@@ -598,3 +598,61 @@ footer {
         display: none;
     }
 }
+
+/* ========================================================================
+   Практична №13: SPA - активний пункт меню, сторінка деталей, сторінка 404
+   ======================================================================== */
+.site-nav a.is-active {
+    color: white;
+    text-decoration: underline;
+    text-underline-offset: 6px;
+}
+
+.recipe-card h3 a,
+.empty-message a,
+.detail-back a,
+.not-found a {
+    color: inherit;
+}
+
+.recipe-card h3 a:hover {
+    color: #A04000;
+}
+
+.detail-back {
+    margin: 40px 0 16px;
+    font-weight: 600;
+}
+
+.recipe-detail {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 24px;
+    background: white;
+    border: 1px solid #E5E7E9;
+    border-radius: 12px;
+}
+
+.recipe-detail img {
+    width: 100%;
+    max-width: 360px;
+    border-radius: 12px;
+}
+
+.recipe-detail h2 {
+    margin-top: 0;
+}
+
+@media (min-width: 768px) {
+    .recipe-detail {
+        grid-template-columns: 320px 1fr;
+    }
+}
+
+.not-found {
+    padding: 24px;
+    background: white;
+    border: 1px solid #E5E7E9;
+    border-radius: 12px;
+}

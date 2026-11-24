@@ -12,11 +12,10 @@
 <body>
     <header class="site-header">
         <h1>Каталог рецептів напоїв</h1>
+        <!-- Практична №13: меню SPA; посилання з data-link обробляє клієнтський роутер -->
         <nav class="site-nav">
-            <a href="#hot-drinks">Гарячі напої</a>
-            <a href="#cold-drinks">Холодні напої</a>
-            <a href="#non-alcoholic">Безалкогольні</a>
-            <a href="#alcoholic">Алкогольні</a>
+            <a href="#/" data-link>Пошук рецептів</a>
+            <a href="#/saved" data-link>Збережені рецепти</a>
         </nav>
     </header>
 
@@ -126,31 +125,8 @@
                 </div>
             </div>
 
-            <section id="api-recipes">
-                <h2>Рецепти з TheCocktailDB</h2>
-
-                <form id="api-search-form">
-                    <label for="api-query">Назва напою (англійською):</label>
-                    <input type="text" id="api-query" name="query" value="margarita" required>
-                    <button type="submit" class="btn" id="api-search-btn">Знайти</button>
-                    <button type="button" class="btn btn-secondary" id="api-refresh-btn">Оновити</button>
-                </form>
-
-                <p id="api-status" class="api-status" role="status" aria-live="polite" hidden></p>
-                <p id="api-error" class="api-error" role="alert" hidden></p>
-
-                <div class="cards" id="api-list"></div>
-            </section>
-
-            <!-- Практична №11: рецепти, збережені в IndexedDB (доступні й без мережі) -->
-            <section id="saved-recipes">
-                <h2>Збережені рецепти (офлайн)</h2>
-
-                <p id="saved-count" class="drinks-count"></p>
-                <p id="saved-error" class="api-error" role="alert" hidden></p>
-
-                <div class="cards" id="saved-list"></div>
-            </section>
+            <!-- Практична №13: єдиний контейнер, у який роутер рендерить усі «сторінки» SPA -->
+            <div id="page"></div>
         </main>
 
         <aside>
@@ -166,6 +142,39 @@
             </ol>
         </aside>
     </div>
+
+    <!-- Практична №13: розмітка сторінок, яку view-функції копіюють у #page.
+         Блоки ті самі, що були в практикумах 9 і 11, тому розмітку не дубльовано в JS. -->
+    <template id="tpl-home">
+        <section id="api-recipes">
+            <h2>Рецепти з TheCocktailDB</h2>
+
+            <form id="api-search-form">
+                <label for="api-query">Назва напою (англійською):</label>
+                <input type="text" id="api-query" name="query" value="margarita" required>
+                <button type="submit" class="btn" id="api-search-btn">Знайти</button>
+                <button type="button" class="btn btn-secondary" id="api-refresh-btn">Оновити</button>
+            </form>
+
+            <p id="api-status" class="api-status" role="status" aria-live="polite" hidden></p>
+            <p id="api-error" class="api-error" role="alert" hidden></p>
+            <p id="saved-error" class="api-error" role="alert" hidden></p>
+
+            <div class="cards" id="api-list"></div>
+        </section>
+    </template>
+
+    <template id="tpl-saved">
+        <!-- Практична №11: рецепти, збережені в IndexedDB (доступні й без мережі) -->
+        <section id="saved-recipes">
+            <h2>Збережені рецепти (офлайн)</h2>
+
+            <p id="saved-count" class="drinks-count"></p>
+            <p id="saved-error" class="api-error" role="alert" hidden></p>
+
+            <div class="cards" id="saved-list"></div>
+        </section>
+    </template>
 
     <footer>
         <p>&copy; 2026 Навчальний проєкт. Виконала: Приходченко Олександра ІП-о51</p>
