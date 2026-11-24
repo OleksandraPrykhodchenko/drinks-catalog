@@ -5,9 +5,10 @@
 */
 console.log('script.js підключено');
 
-// Практична №9: адреса ендпоінта TheCocktailDB (тестовий ключ «1», без реєстрації).
-// Назву напою додаємо в кінець рядка.
-const API_URL = 'https://www.thecocktaildb.com/api/json/v1/1/search.php?s=';
+// Практична №9: спочатку тут була адреса TheCocktailDB (search.php?s=).
+// Практична №14: запит іде на власний Node-сервер (server/server.js) з тим самим форматом відповіді.
+// Адреса відносна, бо сервер роздає і API, і сам застосунок (один origin, без CORS).
+const API_URL = '/api/cocktails?search=';
 
 // Складність нового рецепта визначаємо за часом приготування (у формі такого поля немає)
 const getDifficulty = time => (time <= 10 ? 'Легко' : time <= 20 ? 'Середньо' : 'Складно');
@@ -332,8 +333,8 @@ function mapApiDrink(item) {
     };
 }
 
-// Крок 2: асинхронна функція запиту до TheCocktailDB
-// API: https://www.thecocktaildb.com/api/json/v1/1/search.php?s=<назва> (пошук коктейлю за назвою)
+// Крок 2: асинхронна функція запиту до API
+// Практична №14: GET /api/cocktails?search=<назва> на локальному сервері (раніше TheCocktailDB search.php?s=)
 async function loadData(query = lastQuery) {
     lastQuery = query;
     showLoading(true);
@@ -683,7 +684,9 @@ async function findRecipe(id) {
     const saved = (await getSavedRecipes()).find(item => item.id === id);
     if (saved) return saved;
 
-    const response = await fetch(`https://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=${encodeURIComponent(id)}`);
+    // Практична №14: GET /api/cocktails/:id на локальному сервері (раніше lookup.php?i=)
+    const response = await fetch(`/api/cocktails/${encodeURIComponent(id)}`);
+    if (response.status === 404) return null; // сервер відповів, що такого рецепта немає
     if (!response.ok) throw new Error(`Сервер відповів кодом ${response.status}`);
     const data = await response.json();
     if (!Array.isArray(data.drinks)) return null;
