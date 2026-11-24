@@ -95,9 +95,35 @@
                             :description="recipe.description"
                             :img="recipe.img"
                             :img-alt="recipe.imgAlt"
+                            @open="openRecipe(recipe.id)"
                         ></drink-card>
                     </div>
                 </section>
+
+                <!-- Практична №12: вікно відкритого рецепта з CSS-анімацією «наливання» напою -->
+                <div class="drink-modal" v-if="selected" @click.self="closeRecipe" @keydown.esc="closeRecipe">
+                    <div class="drink-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="drink-modal-title">
+                        <h3 id="drink-modal-title">{{ selected.name }}</h3>
+
+                        <!-- Склянка: колір, рівень і тривалість задає glassStyle (CSS-змінні) -->
+                        <div class="glass" :class="{ 'is-filled': filled, 'is-pouring': pouring, 'is-reset': resetting }" :style="glassStyle">
+                            <span class="glass__stream" aria-hidden="true"></span>
+                            <div class="glass__body">
+                                <div class="glass__liquid" @transitionend="onPourEnd"></div>
+                            </div>
+                        </div>
+
+                        <p class="drink-modal__meta">
+                            {{ selected.type }}, {{ selected.alcohol ? 'алкогольний' : 'безалкогольний' }} · ⏱ {{ selected.timeMinutes }} хв
+                        </p>
+                        <p>{{ selected.description }}</p>
+
+                        <div class="drink-modal__actions">
+                            <button type="button" class="btn" @click="pour">Налити ще раз</button>
+                            <button type="button" class="btn btn-secondary" ref="closeBtn" @click="closeRecipe">Закрити</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <section id="api-recipes">

@@ -31,6 +31,8 @@ const isQuick = time => time <= 5;
 */
 const DrinkCard = {
     props: ['name', 'type', 'timeMinutes', 'alcohol', 'difficulty', 'description', 'img', 'imgAlt'],
+    // Практична №12: клік (чи Enter) по картці повідомляє батьківський компонент, що рецепт треба відкрити
+    emits: ['open'],
     computed: {
         typeClass() {
             return this.type === 'Гарячий' ? 'badge-hot' : 'badge-cold';
@@ -40,7 +42,9 @@ const DrinkCard = {
         }
     },
     template: `
-        <article class="recipe-card" :class="{ 'non-alcoholic': !alcohol }" :data-time="timeMinutes">
+        <article class="recipe-card recipe-card--openable" :class="{ 'non-alcoholic': !alcohol }" :data-time="timeMinutes"
+                 tabindex="0" role="button" :aria-label="'Відкрити рецепт ' + name"
+                 @click="$emit('open')" @keydown.enter="$emit('open')">
             <img v-if="img" :src="img" :alt="imgAlt">
             <div class="card-content">
                 <div class="badges">
@@ -78,7 +82,12 @@ const app = Vue.createApp({
             newName: '',
             newType: 'Гарячий',
             newTime: null,
-            newAlcohol: false
+            newAlcohol: false,
+            // Практична №12: стан вікна рецепта та анімації «наливання»
+            selectedId: null,  // id відкритого рецепта (null - вікно закрите)
+            filled: false,     // клас is-filled: рідина піднята до свого рівня
+            pouring: false,    // клас is-pouring: тече струмінь, поки триває transition
+            resetting: false   // клас is-reset: миттєво спорожнити склянку без зворотної анімації
         };
     },
     computed: {
@@ -95,9 +104,61 @@ const app = Vue.createApp({
             return this.newName !== '' && this.newName.trim() === ''
                 ? 'Назва не може складатися лише з пробілів'
                 : '';
+        },
+        // Практична №12: відкритий рецепт береться з того самого масиву recipes
+        selected() {
+            return this.recipes.find(recipe => recipe.id === this.selectedId) || null;
+        },
+        // Крок 4: параметри анімації обчислюються з даних рецепта, а не задані числами в CSS.
+        // Колір рідини залежить від типу та наявності алкоголю, рівень - від посуду
+        // (гарячі напої наливають у чашку не до краю), тривалість - від часу приготування.
+        glassStyle() {
+            const r = this.selected;
+            if (!r) return {};
+            const hot = r.type === 'Гарячий';
+            const color = hot
+                ? (r.alcohol ? '#7B1E2B' : '#8B5A2B')   // глінтвейн / кава, чай
+                : (r.alcohol ? '#9BC53D' : '#F4D35E');  // мохіто / лимонад
+            const level = hot ? 0.75 : 0.9;
+            const seconds = Math.min(3, Math.max(0.8, r.timeMinutes / 8));
+            return {
+                '--drink-color': color,
+                '--fill-level': level,
+                '--pour-time': `${seconds.toFixed(2)}s`
+            };
         }
     },
     methods: {
+        // Крок 6: анімація запускається дією користувача - відкриттям картки
+        openRecipe(id) {
+            this.selectedId = id;
+            this.pour();
+            this.$nextTick(() => this.$refs.closeBtn?.focus());
+        },
+        // Скидаємо рідину до 0 (без transition) і лише потім ставимо клас is-filled, щоб анімація
+        // програлася знову. Подвійний requestAnimationFrame гарантує, що браузер встиг
+        // намалювати порожню склянку.
+        pour() {
+            this.resetting = true;
+            this.filled = false;
+            this.pouring = false;
+            this.$nextTick(() => {
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    this.resetting = false;
+                    this.filled = true;
+                    this.pouring = true;
+                }));
+            });
+        },
+        // Крок 8: коли transition рідини завершився, зупиняємо @keyframes струменя
+        onPourEnd(event) {
+            if (event.propertyName === 'transform') this.pouring = false;
+        },
+        closeRecipe() {
+            this.selectedId = null;
+            this.filled = false;
+            this.pouring = false;
+        },
         addRecipe() {
             if (this.nameError || !(this.newTime > 0)) return;
             const name = this.newName.trim();

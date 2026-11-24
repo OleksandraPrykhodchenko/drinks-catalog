@@ -467,3 +467,134 @@ footer {
     padding-left: 20px;
     font-size: 0.95rem;
 }
+
+/* ========================================================================
+   Практична №12: CSS-анімація «наливання» напою при відкритті картки.
+   JS лише перемикає класи is-filled / is-pouring і задає CSS-змінні
+   (--drink-color, --fill-level, --pour-time); саму анімацію виконує CSS.
+   ======================================================================== */
+.recipe-card--openable {
+    cursor: pointer;
+}
+
+.recipe-card--openable:focus-visible {
+    outline: 3px solid #A04000;
+    outline-offset: 3px;
+}
+
+.drink-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(44, 30, 22, 0.55);
+}
+
+.drink-modal__dialog {
+    width: min(420px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    padding: 24px;
+    background: #FFFBF5;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+    text-align: center;
+}
+
+.drink-modal__dialog h3 {
+    margin: 0 0 16px;
+}
+
+.drink-modal__meta {
+    font-weight: 600;
+    color: #4D5656;
+}
+
+.drink-modal__actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+/* Склянка */
+.glass {
+    position: relative;
+    width: 120px;
+    height: 200px;
+    margin: 0 auto 16px;
+    padding-top: 30px; /* місце для струменя над склянкою */
+}
+
+.glass__body {
+    position: relative;
+    height: 100%;
+    border: 4px solid #4D5656;
+    border-top: none;
+    border-radius: 0 0 18px 18px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.6);
+}
+
+/* Рідина: висота = рівень із даних, а сама поява - transform: scaleY від дна */
+.glass__liquid {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(var(--fill-level, 0.8) * 100%);
+    background: var(--drink-color, #8B5A2B);
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform var(--pour-time, 1.5s) ease-out;
+}
+
+.glass.is-filled .glass__liquid {
+    transform: scaleY(1);
+}
+
+/* Скидання перед повторним наливанням: без зворотної анімації */
+.glass.is-reset .glass__liquid {
+    transition: none;
+}
+
+/* Струмінь: @keyframes працює, лише поки наливаємо (animation-play-state) */
+.glass__stream {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 8px;
+    height: calc(100% - 10px);
+    margin-left: -4px;
+    border-radius: 4px;
+    background: repeating-linear-gradient(to bottom, var(--drink-color, #8B5A2B) 0 12px, transparent 12px 18px);
+    background-size: 100% 18px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    animation: stream-flow 0.35s linear infinite;
+    animation-play-state: paused;
+}
+
+.glass.is-pouring .glass__stream {
+    opacity: 1;
+    animation-play-state: running;
+}
+
+@keyframes stream-flow {
+    from { background-position: 0 0; }
+    to { background-position: 0 18px; }
+}
+
+/* Для користувачів, яким рух заважає: рідина з'являється одразу, без струменя */
+@media (prefers-reduced-motion: reduce) {
+    .glass__liquid {
+        transition: none;
+    }
+    .glass__stream {
+        display: none;
+    }
+}
